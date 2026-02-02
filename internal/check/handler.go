@@ -75,7 +75,7 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if checks == nil {
-		checks = []Check{} // чтобы в JSON был [], а не null
+		checks = []Check{}
 	}
 	writeJSON(w, http.StatusOK, checks)
 }
