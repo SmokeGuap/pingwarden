@@ -1,0 +1,19 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosec
+    - revive
+
+issues:
+  max-same-issues: 3
+
+run:
+  timeout: 5m
+  tests: true
