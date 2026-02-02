@@ -13,6 +13,7 @@ import (
 	"github.com/smokeguap/pingwarden/internal/check"
 	"github.com/smokeguap/pingwarden/internal/config"
 	"github.com/smokeguap/pingwarden/internal/db"
+	"github.com/smokeguap/pingwarden/internal/result"
 )
 
 func main() {
@@ -32,9 +33,6 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := db.Migrate(cfg.DatabaseURL); err != nil {
-		return err
-	}
 	pool, err := db.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return err
@@ -55,6 +53,7 @@ func run() error {
 		w.WriteHeader(http.StatusOK)
 	})
 	check.NewHandler(check.NewPostgresStore(pool), log).Register(mux)
+	result.NewHandler(result.NewPostgresStore(pool), log).Register(mux)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
