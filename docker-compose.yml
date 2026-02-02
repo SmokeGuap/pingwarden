@@ -1,3 +1,10 @@
+x-app: &app
+  image: pingwarden:dev
+  build: .
+  environment:
+    DATABASE_URL: postgres://pingwarden:pingwarden@postgres:5432/pingwarden?sslmode=disable
+    REDIS_ADDR: redis:6379
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -13,14 +20,39 @@ services:
       timeout: 3s
       retries: 10
 
+  redis:
+    image: redis:8-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    <<: *app
+    command: ["/app/migrate"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
   api:
-    build: .
-    environment:
-      DATABASE_URL: postgres://pingwarden:pingwarden@postgres:5432/pingwarden?sslmode=disable
+    <<: *app
+    command: ["/app/api"]
     ports: ["8080:8080"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate: { condition: service_completed_successfully }
+
+  scheduler:
+    <<: *app
+    command: ["/app/scheduler"]
+    depends_on: &after_migrate
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  worker:
+    <<: *app
+    command: ["/app/worker"]
+    depends_on: *after_migrate
 
 volumes:
   pgdata:
