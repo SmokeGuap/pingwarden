@@ -62,3 +62,21 @@ func (s *PostgresStore) Delete(ctx context.Context, id int64) error {
 	}
 	return nil
 }
+
+func (s *PostgresStore) ClaimDue(ctx context.Context, limit int) ([]int64, error) {
+	rows, err := s.pool.Query(ctx, `
+		UPDATE checks
+		SET next_run_at = now() + make_interval(secs => interval_seconds)
+		WHERE id IN (
+			SELECT id FROM checks
+			WHERE enabled AND next_run_at <= now()
+			ORDER BY next_run_at
+			LIMIT $1
+			FOR UPDATE SKIP LOCKED
+		)
+		RETURNING id`, limit)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, pgx.RowTo[int64])
+}
