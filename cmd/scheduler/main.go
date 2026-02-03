@@ -11,6 +11,7 @@ import (
 	"github.com/smokeguap/pingwarden/internal/check"
 	"github.com/smokeguap/pingwarden/internal/config"
 	"github.com/smokeguap/pingwarden/internal/db"
+	"github.com/smokeguap/pingwarden/internal/metrics"
 	"github.com/smokeguap/pingwarden/internal/queue"
 	"github.com/smokeguap/pingwarden/internal/scheduler"
 )
@@ -45,6 +46,7 @@ func run() error {
 	}
 
 	log.Info("scheduler started", "tick", cfg.SchedulerTick)
+	go metrics.Serve(ctx, cfg.MetricsAddr, log)
 	scheduler.New(check.NewPostgresStore(pool), q, cfg.SchedulerTick, log).Run(ctx)
 	log.Info("scheduler stopped")
 	return nil

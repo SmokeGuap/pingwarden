@@ -9,19 +9,28 @@ import (
 )
 
 type Config struct {
-	HTTPAddr          string
-	DatabaseURL       string
-	RedisAddr         string
-	WorkerConcurrency int
-	SchedulerTick     time.Duration
-	CheckTimeout      time.Duration
+	HTTPAddr              string
+	DatabaseURL           string
+	RedisAddr             string
+	WorkerConcurrency     int
+	SchedulerTick         time.Duration
+	CheckTimeout          time.Duration
+	MetricsAddr           string
+	AlertFailureThreshold int
+	TelegramToken         string
+	TelegramChatID        string
+	WebhookURL            string
 }
 
 func Load() (Config, error) {
 	cfg := Config{
-		HTTPAddr:    getEnv("HTTP_ADDR", ":8080"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		RedisAddr:   getEnv("REDIS_ADDR", "localhost:6379"),
+		HTTPAddr:       getEnv("HTTP_ADDR", ":8080"),
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		RedisAddr:      getEnv("REDIS_ADDR", "localhost:6379"),
+		MetricsAddr:    getEnv("METRICS_ADDR", ":9090"),
+		TelegramToken:  os.Getenv("TELEGRAM_BOT_TOKEN"),
+		TelegramChatID: os.Getenv("TELEGRAM_CHAT_ID"),
+		WebhookURL:     os.Getenv("ALERT_WEBHOOK_URL"),
 	}
 	if cfg.DatabaseURL == "" {
 		return Config{}, errors.New("DATABASE_URL is required")
@@ -29,6 +38,9 @@ func Load() (Config, error) {
 
 	var err error
 	if cfg.WorkerConcurrency, err = getInt("WORKER_CONCURRENCY", 10); err != nil {
+		return Config{}, err
+	}
+	if cfg.AlertFailureThreshold, err = getInt("ALERT_FAILURE_THRESHOLD", 3); err != nil {
 		return Config{}, err
 	}
 	if cfg.SchedulerTick, err = getDuration("SCHEDULER_TICK", time.Second); err != nil {
