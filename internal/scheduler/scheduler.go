@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"time"
+
+	"github.com/smokeguap/pingwarden/internal/metrics"
 )
 
 const batchSize = 500
@@ -56,6 +58,7 @@ func (s *Scheduler) enqueueDue(ctx context.Context) {
 			s.log.Error("push to queue", "err", err, "count", len(ids))
 			return
 		}
+		metrics.JobsEnqueued.Add(float64(len(ids)))
 		s.log.Debug("enqueued", "count", len(ids))
 		if len(ids) < batchSize {
 			return

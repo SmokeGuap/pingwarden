@@ -11,6 +11,7 @@ import (
 	"github.com/smokeguap/pingwarden/internal/check"
 	"github.com/smokeguap/pingwarden/internal/config"
 	"github.com/smokeguap/pingwarden/internal/db"
+	"github.com/smokeguap/pingwarden/internal/metrics"
 	"github.com/smokeguap/pingwarden/internal/queue"
 	"github.com/smokeguap/pingwarden/internal/result"
 	"github.com/smokeguap/pingwarden/internal/worker"
@@ -45,8 +46,14 @@ func run() error {
 		return fmt.Errorf("ping redis: %w", err)
 	}
 
-	w := worker.New(q, check.NewPostgresStore(pool), result.NewPostgresStore(pool),
-		cfg.WorkerConcurrency, cfg.CheckTimeout, log)
+	go metrics.Serve(ctx, cfg.MetricsAddr, log)
+
+	w := worker.New(q, check.NewPostgresStore(pool), result.NewPostgresStore(pool), q,
+		worker.Config{
+			Concurrency:      cfg.WorkerConcurrency,
+			Timeout:          cfg.CheckTimeout,
+			FailureThreshold: cfg.AlertFailureThreshold,
+		}, log)
 
 	log.Info("worker started", "concurrency", cfg.WorkerConcurrency)
 	w.Run(ctx)
