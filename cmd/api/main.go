@@ -13,6 +13,7 @@ import (
 	"github.com/smokeguap/pingwarden/internal/check"
 	"github.com/smokeguap/pingwarden/internal/config"
 	"github.com/smokeguap/pingwarden/internal/db"
+	"github.com/smokeguap/pingwarden/internal/metrics"
 	"github.com/smokeguap/pingwarden/internal/result"
 )
 
@@ -52,12 +53,17 @@ func run() error {
 		}
 		w.WriteHeader(http.StatusOK)
 	})
-	check.NewHandler(check.NewPostgresStore(pool), log).Register(mux)
+	checkStore := check.NewPostgresStore(pool)
+	metrics.RegisterChecksGauge(checkStore)
+
+	mux.Handle("GET /metrics", metrics.Handler())
+
+	check.NewHandler(checkStore, log).Register(mux)
 	result.NewHandler(result.NewPostgresStore(pool), log).Register(mux)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           mux,
+		Handler:           metrics.Middleware(mux),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
