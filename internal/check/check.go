@@ -24,3 +24,27 @@ type Store interface {
 	Update(ctx context.Context, c *Check) error
 	Delete(ctx context.Context, id int64) error
 }
+
+const (
+	StatusUnknown = "unknown"
+	StatusUp      = "up"
+	StatusDown    = "down"
+)
+
+type Transition struct {
+	From, To  string
+	PrevSince time.Time
+}
+
+func (t Transition) Changed() bool { return t.From != t.To }
+
+func NextState(status string, failures int, success bool, threshold int) (string, int) {
+	if success {
+		return StatusUp, 0
+	}
+	failures++
+	if failures >= threshold {
+		return StatusDown, failures
+	}
+	return status, failures
+}

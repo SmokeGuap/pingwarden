@@ -3,6 +3,7 @@ package check
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -79,4 +80,63 @@ func (s *PostgresStore) ClaimDue(ctx context.Context, limit int) ([]int64, error
 		return nil, err
 	}
 	return pgx.CollectRows(rows, pgx.RowTo[int64])
+}
+
+func (s *PostgresStore) RecordOutcome(ctx context.Context, id int64, success bool, threshold int) (Transition, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return Transition{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var (
+		status   string
+		failures int
+		since    time.Time
+	)
+	err = tx.QueryRow(ctx,
+		`SELECT status, consecutive_failures, status_changed_at
+		 FROM checks WHERE id = $1 FOR UPDATE`, id).Scan(&status, &failures, &since)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Transition{}, ErrNotFound
+	}
+	if err != nil {
+		return Transition{}, err
+	}
+
+	next, failures := NextState(status, failures, success, threshold)
+	_, err = tx.Exec(ctx,
+		`UPDATE checks
+		 SET status = $2, consecutive_failures = $3,
+		     status_changed_at = CASE WHEN $4 THEN now() ELSE status_changed_at END
+		 WHERE id = $1`, id, next, failures, next != status)
+	if err != nil {
+		return Transition{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Transition{}, err
+	}
+	return Transition{From: status, To: next, PrevSince: since}, nil
+}
+
+func (s *PostgresStore) CountByStatus(ctx context.Context) (map[string]int, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT status, count(*) FROM checks WHERE enabled GROUP BY status`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	counts := map[string]int{}
+	for rows.Next() {
+		var (
+			status string
+			n      int
+		)
+		if err := rows.Scan(&status, &n); err != nil {
+			return nil, err
+		}
+		counts[status] = n
+	}
+	return counts, rows.Err()
 }
