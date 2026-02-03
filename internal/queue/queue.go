@@ -11,6 +11,8 @@ import (
 
 var ErrEmpty = errors.New("queue empty")
 
+const eventsKey = "pingwarden:events"
+
 type Queue struct {
 	rdb *redis.Client
 	key string
@@ -47,4 +49,19 @@ func (q *Queue) Pop(ctx context.Context, timeout time.Duration) (int64, error) {
 		return 0, err
 	}
 	return strconv.ParseInt(res[1], 10, 64)
+}
+
+func (q *Queue) PushEvent(ctx context.Context, payload []byte) error {
+	return q.rdb.LPush(ctx, eventsKey, payload).Err()
+}
+
+func (q *Queue) PopEvent(ctx context.Context, timeout time.Duration) ([]byte, error) {
+	res, err := q.rdb.BRPop(ctx, timeout, eventsKey).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil, ErrEmpty
+	}
+	if err != nil {
+		return nil, err
+	}
+	return []byte(res[1]), nil
 }
