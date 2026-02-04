@@ -1,0 +1,6 @@
+- name: Prepare VPS and install k3s
+  hosts: all
+  become: true
+  roles:
+    - base
+    - k3s
