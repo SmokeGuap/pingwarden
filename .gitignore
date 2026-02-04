@@ -13,3 +13,6 @@ coverage.html
 .idea/
 .vscode/
 .DS_Store
+
+infra/ansible/kubeconfig
+collections/
