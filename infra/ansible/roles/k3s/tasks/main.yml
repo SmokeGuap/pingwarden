@@ -1,0 +1,46 @@
+- name: Create k3s config dir
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: "0755"
+
+- name: Configure k3s
+  ansible.builtin.copy:
+    dest: /etc/rancher/k3s/config.yaml
+    content: |
+      write-kubeconfig-mode: "0600"
+      disable:
+        - metrics-server
+    mode: "0644"
+  notify: Restart k3s
+
+- name: Download k3s install script
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: /usr/local/bin/k3s-install.sh
+    mode: "0755"
+
+- name: Install k3s
+  ansible.builtin.command: /usr/local/bin/k3s-install.sh
+  args:
+    creates: /usr/local/bin/k3s
+  environment:
+    INSTALL_K3S_CHANNEL: "{{ k3s_channel }}"
+
+- name: Ensure k3s is running
+  ansible.builtin.service:
+    name: k3s
+    state: started
+    enabled: true
+
+- name: Wait for API server
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 6443
+    timeout: 120
+
+- name: Fetch kubeconfig to the controller
+  ansible.builtin.fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: "{{ playbook_dir }}/kubeconfig"
+    flat: true
