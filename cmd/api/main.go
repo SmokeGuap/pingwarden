@@ -44,6 +44,11 @@ func run() error {
 	}
 	defer pool.Close()
 
+	checkStore := check.NewPostgresStore(pool)
+	metrics.RegisterChecksGauge(checkStore)
+
+	go metrics.Serve(ctx, cfg.MetricsAddr, log)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -57,10 +62,6 @@ func run() error {
 		}
 		w.WriteHeader(http.StatusOK)
 	})
-	checkStore := check.NewPostgresStore(pool)
-	metrics.RegisterChecksGauge(checkStore)
-
-	mux.Handle("GET /metrics", metrics.Handler())
 
 	check.NewHandler(checkStore, log).Register(mux)
 	result.NewHandler(result.NewPostgresStore(pool), log).Register(mux)
