@@ -9,13 +9,20 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load()
-	if err == nil {
-		err = db.Migrate(cfg.DatabaseURL)
-	}
-	if err != nil {
+	if err := run(); err != nil {
 		slog.Error("migrate failed", "err", err)
 		os.Exit(1)
 	}
 	slog.Info("migrations applied")
+}
+
+func run() error {
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	if err := cfg.RequireDB(); err != nil {
+		return err
+	}
+	return db.Migrate(cfg.DatabaseURL)
 }

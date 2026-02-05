@@ -28,6 +28,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	if err := cfg.RequireDB(); err != nil {
+		return err
+	}
+
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
