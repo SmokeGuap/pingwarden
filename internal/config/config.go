@@ -32,9 +32,6 @@ func Load() (Config, error) {
 		TelegramChatID: os.Getenv("TELEGRAM_CHAT_ID"),
 		WebhookURL:     os.Getenv("ALERT_WEBHOOK_URL"),
 	}
-	if cfg.DatabaseURL == "" {
-		return Config{}, errors.New("DATABASE_URL is required")
-	}
 
 	var err error
 	if cfg.WorkerConcurrency, err = getInt("WORKER_CONCURRENCY", 10); err != nil {
@@ -50,6 +47,13 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	return cfg, nil
+}
+
+func (c Config) RequireDB() error {
+	if c.DatabaseURL == "" {
+		return errors.New("DATABASE_URL is required")
+	}
+	return nil
 }
 
 func getEnv(key, def string) string {
