@@ -1,0 +1,55 @@
+{{- range $name := list "scheduler" "worker" "notifier" }}
+{{- $svc := index $.Values $name }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-{{ $name }}
+  labels: {{- include "pingwarden.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ $svc.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      app.kubernetes.io/component: {{ $name }}
+  template:
+    metadata:
+      labels:
+        {{- include "pingwarden.labels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $name }}
+    spec:
+      securityContext: {{- include "pingwarden.podSecurity" $ | nindent 8 }}
+      containers:
+        - name: {{ $name }}
+          image: {{ include "pingwarden.image" $ }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          command: ["/app/{{ $name }}"]
+          ports:
+            - { name: metrics, containerPort: 9090 }
+          env:
+            {{- include "pingwarden.env" $ | nindent 12 }}
+            {{- if eq $name "notifier" }}
+            {{- range $k := list "TELEGRAM_BOT_TOKEN" "TELEGRAM_CHAT_ID" "ALERT_WEBHOOK_URL" }}
+            - name: {{ $k }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.secretName }}
+                  key: {{ $k }}
+                  optional: true
+            {{- end }}
+            {{- end }}
+          startupProbe:
+            httpGet: { path: /healthz, port: metrics }
+            periodSeconds: 3
+            failureThreshold: 40
+          readinessProbe:
+            httpGet: { path: /healthz, port: metrics }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: metrics }
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext: {{- include "pingwarden.containerSecurity" $ | nindent 12 }}
+          resources: {{- toYaml $svc.resources | nindent 12 }}
+{{- end }}
