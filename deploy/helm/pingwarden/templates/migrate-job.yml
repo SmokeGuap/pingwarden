@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-migrate
+  labels: {{- include "pingwarden.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext: {{- include "pingwarden.podSecurity" . | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ include "pingwarden.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/app/migrate"]
+          env: {{- include "pingwarden.env" . | nindent 12 }}
+          securityContext: {{- include "pingwarden.containerSecurity" . | nindent 12 }}
