@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/pressly/goose/v3"
 	"github.com/smokeguap/pingwarden/migrations"
@@ -17,11 +18,20 @@ func Connect(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create pool: %w", err)
 	}
-	if err := pool.Ping(ctx); err != nil {
-		pool.Close()
-		return nil, fmt.Errorf("ping db: %w", err)
+	var lastErr error
+	for attempt := 1; attempt <= 30; attempt++ {
+		if lastErr = pool.Ping(ctx); lastErr == nil {
+			return pool, nil
+		}
+		select {
+		case <-ctx.Done():
+			pool.Close()
+			return nil, ctx.Err()
+		case <-time.After(2 * time.Second):
+		}
 	}
-	return pool, nil
+	pool.Close()
+	return nil, fmt.Errorf("ping db: %w", lastErr)
 }
 
 func Migrate(url string) error {
