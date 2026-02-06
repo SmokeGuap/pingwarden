@@ -39,6 +39,24 @@
     port: 6443
     timeout: 120
 
+# The default 1s probe timeouts make the kubelet restart CoreDNS on a busy
+# single-vCPU node, which takes cluster DNS (and every pod that resolves a
+# service name at startup) down with it.
+- name: Tune CoreDNS probes for a small node
+  ansible.builtin.command:
+    cmd: >-
+      k3s kubectl -n kube-system patch deployment coredns --type=json -p
+      '[{"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/timeoutSeconds","value":5},
+        {"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/failureThreshold","value":5},
+        {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/timeoutSeconds","value":5},
+        {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/failureThreshold","value":6},
+        {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/periodSeconds","value":5}]'
+  register: coredns_patch
+  changed_when: coredns_patch.rc == 0 and 'patched' in (coredns_patch.stdout | default(''))
+  retries: 10
+  delay: 6
+  until: coredns_patch.rc == 0
+
 - name: Fetch kubeconfig to the controller
   ansible.builtin.fetch:
     src: /etc/rancher/k3s/k3s.yaml
