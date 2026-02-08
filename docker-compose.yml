@@ -40,6 +40,9 @@ services:
   api:
     <<: *app
     command: ["/app/api"]
+    environment:
+      <<: *env
+      API_TOKEN: ${API_TOKEN}
     ports: ["8080:8080"]
     depends_on:
       migrate: { condition: service_completed_successfully }

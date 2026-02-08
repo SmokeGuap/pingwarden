@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/smokeguap/pingwarden/internal/auth"
 	"github.com/smokeguap/pingwarden/internal/check"
 	"github.com/smokeguap/pingwarden/internal/config"
 	"github.com/smokeguap/pingwarden/internal/db"
@@ -30,6 +31,9 @@ func run() error {
 		return err
 	}
 	if err := cfg.RequireDB(); err != nil {
+		return err
+	}
+	if err := cfg.RequireAPIToken(); err != nil {
 		return err
 	}
 
@@ -68,7 +72,7 @@ func run() error {
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           metrics.Middleware(mux),
+		Handler:           metrics.Middleware(auth.Bearer(cfg.APIToken, mux)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

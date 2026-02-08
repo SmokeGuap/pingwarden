@@ -20,17 +20,21 @@ type Config struct {
 	TelegramToken         string
 	TelegramChatID        string
 	WebhookURL            string
+	APIToken              string
+	AllowPrivateTargets   bool
 }
 
 func Load() (Config, error) {
 	cfg := Config{
-		HTTPAddr:       getEnv("HTTP_ADDR", ":8080"),
-		DatabaseURL:    os.Getenv("DATABASE_URL"),
-		RedisAddr:      getEnv("REDIS_ADDR", "localhost:6379"),
-		MetricsAddr:    getEnv("METRICS_ADDR", ":9090"),
-		TelegramToken:  os.Getenv("TELEGRAM_BOT_TOKEN"),
-		TelegramChatID: os.Getenv("TELEGRAM_CHAT_ID"),
-		WebhookURL:     os.Getenv("ALERT_WEBHOOK_URL"),
+		HTTPAddr:            getEnv("HTTP_ADDR", ":8080"),
+		DatabaseURL:         os.Getenv("DATABASE_URL"),
+		RedisAddr:           getEnv("REDIS_ADDR", "localhost:6379"),
+		MetricsAddr:         getEnv("METRICS_ADDR", ":9090"),
+		TelegramToken:       os.Getenv("TELEGRAM_BOT_TOKEN"),
+		TelegramChatID:      os.Getenv("TELEGRAM_CHAT_ID"),
+		WebhookURL:          os.Getenv("ALERT_WEBHOOK_URL"),
+		APIToken:            os.Getenv("API_TOKEN"),
+		AllowPrivateTargets: os.Getenv("ALLOW_PRIVATE_TARGETS") == "true",
 	}
 
 	var err error
@@ -52,6 +56,13 @@ func Load() (Config, error) {
 func (c Config) RequireDB() error {
 	if c.DatabaseURL == "" {
 		return errors.New("DATABASE_URL is required")
+	}
+	return nil
+}
+
+func (c Config) RequireAPIToken() error {
+	if len(c.APIToken) < 16 {
+		return errors.New("API_TOKEN is required (min 16 chars)")
 	}
 	return nil
 }
