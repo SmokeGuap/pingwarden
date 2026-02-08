@@ -38,6 +38,11 @@ spec:
             - { name: http, containerPort: 8080 }
             - { name: metrics, containerPort: 9090 }
           env: {{- include "pingwarden.env" . | nindent 12 }}
+            - name: API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretName }}
+                  key: API_TOKEN
           startupProbe:
             httpGet: { path: /healthz, port: http }
             periodSeconds: 3
