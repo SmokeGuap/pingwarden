@@ -38,6 +38,7 @@ type Config struct {
 	Concurrency      int
 	Timeout          time.Duration
 	FailureThreshold int
+	AllowPrivate     bool
 }
 
 type Worker struct {
@@ -53,7 +54,7 @@ type Worker struct {
 func New(q Queue, c Checks, r Results, e Events, cfg Config, log *slog.Logger) *Worker {
 	return &Worker{
 		queue: q, checks: c, results: r, events: e,
-		client: &http.Client{},
+		client: probe.NewClient(cfg.AllowPrivate),
 		cfg:    cfg,
 		log:    log,
 	}
