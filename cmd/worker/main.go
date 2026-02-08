@@ -57,6 +57,7 @@ func run() error {
 			Concurrency:      cfg.WorkerConcurrency,
 			Timeout:          cfg.CheckTimeout,
 			FailureThreshold: cfg.AlertFailureThreshold,
+			AllowPrivate:     cfg.AllowPrivateTargets,
 		}, log)
 
 	log.Info("worker started", "concurrency", cfg.WorkerConcurrency)
