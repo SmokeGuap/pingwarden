@@ -25,12 +25,22 @@ HTTP uptime monitoring service: periodically probes configured URLs, stores resu
 - Docker Compose
 - Helm chart for Kubernetes
 - Ansible
+- Terraform
 
 ## Quick start
 
 ```bash
+# Docker Compose:
 cp .env.example .env
 docker compose up --build
+
+# Local k3d cluster:
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform plan
+terraform apply
+terraform output port_forward
 ```
 
 The API is available at `http://localhost:8080`, Prometheus at `http://localhost:9090`. 
