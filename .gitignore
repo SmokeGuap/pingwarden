@@ -16,3 +16,9 @@ coverage.html
 
 infra/ansible/kubeconfig
 collections/
+
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/*.tfvars
+infra/terraform/crash.log
