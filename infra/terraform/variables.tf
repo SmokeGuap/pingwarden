@@ -51,3 +51,8 @@ variable "telegram_chat_id" {
   type    = string
   default = ""
 }
+
+variable "monitoring_namespace" {
+  type    = string
+  default = "monitoring"
+}

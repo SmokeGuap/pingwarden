@@ -56,3 +56,44 @@ resource "helm_release" "app" {
 
   depends_on = [kubernetes_secret_v1.app]
 }
+
+resource "kubernetes_namespace_v1" "monitoring" {
+  metadata {
+    name = var.monitoring_namespace
+  }
+}
+
+resource "random_password" "grafana" {
+  length  = 24
+  special = false
+}
+
+resource "kubernetes_secret_v1" "grafana_admin" {
+  metadata {
+    name      = "grafana-admin"
+    namespace = kubernetes_namespace_v1.monitoring.metadata[0].name
+  }
+  data = {
+    "admin-password" = random_password.grafana.result
+  }
+}
+
+resource "helm_release" "monitoring" {
+  name      = "monitoring"
+  namespace = kubernetes_namespace_v1.monitoring.metadata[0].name
+  chart     = "${path.module}/../../deploy/helm/monitoring"
+
+  timeout = 600
+  wait    = true
+
+  set {
+    name  = "appNamespace"
+    value = var.namespace
+  }
+  set_sensitive {
+    name  = "alertmanager.webhookURL"
+    value = var.alert_webhook_url
+  }
+
+  depends_on = [kubernetes_secret_v1.grafana_admin]
+}
