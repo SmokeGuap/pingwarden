@@ -73,8 +73,8 @@ services:
   prometheus:
     image: prom/prometheus:v3.0.0
     volumes:
-      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./deploy/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+      - ./deploy/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - ./deploy/prometheus/rules.yaml:/etc/prometheus/rules.yaml:ro
     ports: ["9090:9090"]
 
 volumes:
