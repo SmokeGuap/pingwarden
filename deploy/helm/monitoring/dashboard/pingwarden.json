@@ -1,0 +1,83 @@
+{
+  "title": "Pingwarden",
+  "uid": "pingwarden-main",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "check_id",
+        "label": "Check",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": { "query": "label_values(pingwarden_checks_total, check_id)", "refId": "q" },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Checks by state",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "max by (status) (pingwarden_checks)", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Success ratio (5m)",
+      "gridPos": { "x": 8, "y": 0, "w": 16, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (check_id) (rate(pingwarden_checks_total{check_id=~\"$check_id\",result=\"success\"}[5m])) / sum by (check_id) (rate(pingwarden_checks_total{check_id=~\"$check_id\"}[5m]))",
+          "legendFormat": "check {{check_id}}"
+        }
+      ]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "p95 latency",
+      "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, check_id) (rate(pingwarden_check_duration_seconds_bucket{check_id=~\"$check_id\"}[5m])))",
+          "legendFormat": "check {{check_id}}"
+        }
+      ]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Checks per second by result",
+      "gridPos": { "x": 12, "y": 6, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "sum by (result) (rate(pingwarden_checks_total[1m]))", "legendFormat": "{{result}}" }
+      ]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "API requests by status",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "sum by (status) (rate(pingwarden_http_requests_total[5m]))", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "State transitions (1h)",
+      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "sum by (to) (increase(pingwarden_state_transitions_total[1h]))", "legendFormat": "to {{to}}" }
+      ]
+    }
+  ]
+}
