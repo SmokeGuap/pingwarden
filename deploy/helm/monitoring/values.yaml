@@ -1,0 +1,23 @@
+appNamespace: pingwarden
+
+prometheus:
+  image: prom/prometheus:v3.0.0
+  retention: 3d
+  scrapeInterval: 15s
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 512Mi }
+
+alertmanager:
+  image: prom/alertmanager:v0.28.0
+  webhookURL: ""
+  resources:
+    requests: { cpu: 10m, memory: 32Mi }
+    limits: { memory: 64Mi }
+
+grafana:
+  image: grafana/grafana:11.4.0
+  adminSecretName: grafana-admin
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 256Mi }
