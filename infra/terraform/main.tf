@@ -95,5 +95,44 @@ resource "helm_release" "monitoring" {
     value = var.alert_webhook_url
   }
 
+  set {
+    name  = "chartHash"
+    value = sha1(join("", [
+      for f in sort(fileset("${path.module}/../../deploy/helm/monitoring", "**")) :
+      filesha1("${path.module}/../../deploy/helm/monitoring/${f}")
+    ]))
+  }
+
   depends_on = [kubernetes_secret_v1.grafana_admin]
+}
+
+resource "helm_release" "loki" {
+  name             = "loki"
+  namespace        = var.logging_namespace
+  create_namespace = true
+
+  repository = "https://grafana.github.io/helm-charts"
+  chart      = "loki"
+  version    = var.loki_chart_version
+
+  timeout = 600
+  wait    = true
+
+  values = [file("${path.module}/values/loki.yaml")]
+}
+
+resource "helm_release" "vector" {
+  name      = "vector"
+  namespace = var.logging_namespace
+
+  repository = "https://helm.vector.dev"
+  chart      = "vector"
+  version    = var.vector_chart_version
+
+  timeout = 600
+  wait    = true
+
+  values = [file("${path.module}/values/vector.yaml")]
+
+  depends_on = [helm_release.loki]
 }
