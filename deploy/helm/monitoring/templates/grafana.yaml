@@ -12,6 +12,11 @@ data:
         access: proxy
         url: http://prometheus:9090
         isDefault: true
+      - name: Loki
+        uid: loki
+        type: loki
+        access: proxy
+        url: http://loki.logging.svc.cluster.local:3100
   dashboards.yaml: |
     apiVersion: 1
     providers:
