@@ -22,6 +22,7 @@ type Config struct {
 	WebhookURL            string
 	APIToken              string
 	AllowPrivateTargets   bool
+	ResultsKeep           int
 }
 
 func Load() (Config, error) {
@@ -42,6 +43,9 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	if cfg.AlertFailureThreshold, err = getInt("ALERT_FAILURE_THRESHOLD", 3); err != nil {
+		return Config{}, err
+	}
+	if cfg.ResultsKeep, err = getInt("RESULTS_KEEP", 100); err != nil {
 		return Config{}, err
 	}
 	if cfg.SchedulerTick, err = getDuration("SCHEDULER_TICK", time.Second); err != nil {
