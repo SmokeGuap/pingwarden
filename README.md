@@ -6,41 +6,70 @@ HTTP uptime monitoring service: periodically probes configured URLs, stores resu
 
 **Language and runtime**
 
-- Go 1.27, standard library (`net/http`, `log/slog`, `context`) — no web framework
+- Go 1.27, standard library (`net/http`, `log/slog`, `context`)
+- Services: `api`, `scheduler`, `worker`, `notifier`, `migrate`
 
 **Data**
 
-- PostgreSQL 17 — checks and result history
+- PostgreSQL 17
 - pgx/v5 + pgxpool
 - goose
 - Redis 8
 
+**Security**
+
+- Bearer-token auth for the API
+- SSRF guard: target IPs are checked after DNS resolution (dialer level)
+
 **Observability**
 
 - Prometheus
+- Alertmanager
+- Grafana
+- Loki
+- Vector
 
 **Infrastructure**
 
-- Docker 
-- Docker Compose
-- Helm chart for Kubernetes
+- Docker, Docker Compose
+- Kubernetes: k3s (server, via Ansible), k3d (local cluster)
+- Helm (`deploy/helm/pingwarden`, `deploy/helm/monitoring`)
+- Terraform
 - Ansible
-- Terraform (Kubernetes namespace, secrets and Helm release)
+- GitHub Actions
 
 ## Quick start
 
-```bash
-# Docker Compose:
-cp .env.example .env   # fill in notification channels if needed
-docker compose up --build
+### Docker Compose
 
-# Local k3d cluster (context k3d-pingwarden):
-cd infra/terraform
-cp terraform.tfvars.example terraform.tfvars   # fill in notification channels if needed
-terraform init                                # download providers, create lock file
-terraform plan                                # review changes before applying
-terraform apply                               # create namespace, secrets and Helm release
-terraform output port_forward                 # prints the kubectl port-forward command
+```bash
+cp .env.example .env   # openssl rand -hex 24
+                       # notification channels are optional here
+docker compose up --build
 ```
 
-The API is available at `http://localhost:8080`, Prometheus at `http://localhost:9090`.
+- API: `http://localhost:8080`
+- Prometheus: `http://localhost:9090`
+
+### local Kubernetes (k3d + Terraform)
+
+```bash
+k3d cluster create pingwarden -p "8081:80@loadbalancer"
+docker build -t pingwarden:dev .
+k3d image import pingwarden:dev -c pingwarden
+
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars   
+terraform init                                 # download providers, create lock file
+terraform plan                                 # review changes before applying
+terraform apply      
+
+terraform output port_forward                  # API
+terraform output monitoring_port_forwards      # Grafana, Prometheus, Alertmanager
+export TOKEN=$(terraform output -raw api_token)
+terraform output -raw grafana_password         # Grafana login: admin
+```
+- API: `http://localhost:8080`
+- Grafana: `http://localhost:3000`
+- Prometheus: `http://localhost:9091`
+- Alertmanager: `http://localhost:9093`
