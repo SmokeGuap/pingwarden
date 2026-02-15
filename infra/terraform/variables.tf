@@ -56,3 +56,18 @@ variable "monitoring_namespace" {
   type    = string
   default = "monitoring"
 }
+
+variable "logging_namespace" {
+  type    = string
+  default = "logging"
+}
+
+variable "loki_chart_version" {
+  type    = string
+  default = "6.51.0"
+}
+
+variable "vector_chart_version" {
+  type    = string
+  default = "0.50.0"
+}
