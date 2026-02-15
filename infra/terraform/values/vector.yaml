@@ -1,0 +1,39 @@
+role: Agent
+
+service:
+  enabled: false
+
+serviceHeadless:
+  enabled: false
+
+customConfig:
+  data_dir: /vector-data-dir
+  sources:
+    k8s:
+      type: kubernetes_logs
+      extra_field_selector: "metadata.namespace=pingwarden"
+
+  transforms:
+    parse:
+      type: remap
+      inputs: [k8s]
+      source: |
+        parsed, err = parse_json(.message)
+        if err == null && is_object(parsed) {
+          . = merge(., object!(parsed))
+        }
+
+  sinks:
+    loki:
+      type: loki
+      inputs: [parse]
+      endpoint: http://loki.logging.svc.cluster.local:3100
+      encoding:
+        codec: json
+      labels:
+        namespace: '{{ "{{" }} kubernetes.pod_namespace {{ "}}" }}'
+        app: '{{ "{{" }} kubernetes.pod_labels."app.kubernetes.io/component" {{ "}}" }}'
+
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { memory: 128Mi }
