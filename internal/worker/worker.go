@@ -32,6 +32,7 @@ type Checks interface {
 
 type Results interface {
 	Insert(ctx context.Context, r *result.Result) error
+	Prune(ctx context.Context, checkID int64, keep int) error
 }
 
 type Config struct {
@@ -39,6 +40,7 @@ type Config struct {
 	Timeout          time.Duration
 	FailureThreshold int
 	AllowPrivate     bool
+	ResultsKeep      int
 }
 
 type Worker struct {
@@ -128,7 +130,9 @@ func (w *Worker) process(ctx context.Context, id int64) {
 		w.log.Error("save result", "check_id", c.ID, "err", err)
 		return
 	}
-
+	if err := w.results.Prune(ctx, c.ID, w.cfg.ResultsKeep); err != nil {
+		w.log.Warn("prune results", "check_id", c.ID, "err", err)
+	}
 	tr, err := w.checks.RecordOutcome(ctx, c.ID, res.Success, w.cfg.FailureThreshold)
 	if errors.Is(err, check.ErrNotFound) {
 		return
