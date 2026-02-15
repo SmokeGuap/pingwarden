@@ -29,3 +29,16 @@ func (s *PostgresStore) ListByCheck(ctx context.Context, checkID int64, limit in
 	}
 	return pgx.CollectRows(rows, pgx.RowToStructByPos[Result])
 }
+
+func (s *PostgresStore) Prune(ctx context.Context, checkID int64, keep int) error {
+	_, err := s.pool.Exec(ctx, `
+		DELETE FROM check_results
+		WHERE check_id = $1
+		  AND id < (
+		      SELECT id FROM check_results
+		      WHERE check_id = $1
+		      ORDER BY id DESC
+		      OFFSET $2 - 1 LIMIT 1
+		  )`, checkID, keep)
+	return err
+}
