@@ -51,7 +51,7 @@ docker compose up --build
 - API: `http://localhost:8080`
 - Prometheus: `http://localhost:9090`
 
-### local Kubernetes (k3d + Terraform)
+### Local Kubernetes (k3d + Terraform)
 
 ```bash
 k3d cluster create pingwarden -p "8081:80@loadbalancer"
@@ -59,17 +59,29 @@ docker build -t pingwarden:dev .
 k3d image import pingwarden:dev -c pingwarden
 
 cd infra/terraform
-cp terraform.tfvars.example terraform.tfvars   
+cp terraform.tfvars.example terraform.tfvars
 terraform init                                 # download providers, create lock file
 terraform plan                                 # review changes before applying
-terraform apply      
+terraform apply
 
 terraform output port_forward                  # API
 terraform output monitoring_port_forwards      # Grafana, Prometheus, Alertmanager
 export TOKEN=$(terraform output -raw api_token)
 terraform output -raw grafana_password         # Grafana login: admin
 ```
+
 - API: `http://localhost:8080`
 - Grafana: `http://localhost:3000`
 - Prometheus: `http://localhost:9091`
 - Alertmanager: `http://localhost:9093`
+
+### Server with k3s (Ansible)
+
+Ansible prepares a clean Ubuntu 24.04 server (non-root user, SSH keys only, ufw, fail2ban, swap) and installs k3s. Then the same Helm charts can be applied to it.
+
+```bash
+cd infra/ansible
+ansible-galaxy collection install -r requirements.yml
+ansible-playbook site.yml -e ansible_user=root    # first run, before root login is disabled
+ansible-playbook site.yml                         # later runs as the deploy user
+```
